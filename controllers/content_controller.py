@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models.content_model import check_sensitive_image, check_sensitive_text
+from models.content_model import check_sensitive_image, check_sensitive_text,classify_post
 
 content_bp = Blueprint('content', __name__)
 
@@ -30,3 +30,27 @@ def check_text():
         return jsonify({'sensitive': True}), 200
     else:
         return jsonify({'sensitive': False}), 200
+
+@content_bp.route('/classify-post', methods=['POST'])
+def classify_post_endpoint():
+    data = request.json
+    text_content = data.get('text')  # Text content to classify
+    image_url = data.get('image_url')  # Image URL to classify
+
+    # Ensure at least one input (text or image URL) is provided
+    if not text_content and not image_url:
+        return jsonify({'error': 'Either text or image_url is required'}), 400
+
+    # Call the classify_post function with provided text and/or image URL
+    result = classify_post(text_content=text_content, image_url=image_url)
+
+    # Handle any errors that occur during classification
+    if "error" in result:
+        return jsonify({'error': result["error"]}), 500
+
+    # Return the classification result with the predicted topic and scores
+    return jsonify({
+        'predicted_topic': result["predicted_topic"],
+        'text_score': result["text_score"],
+        'image_score': result["image_score"]
+    }), 200
